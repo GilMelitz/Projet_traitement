@@ -93,6 +93,12 @@ def group_and_aggregate_immatriculation(input_excel, output_excel, sheet_name, i
     # Merge the grouped_df with kilometers_df to include the Total_Kilometers
     final_df = pd.merge(grouped_df, kilometers_df[[immatriculation_column, 'Total_Kilometers']], on=immatriculation_column, how='left')
 
+    # Add Consommation (en L/km) column, dividing Total_Volume by Total_Kilometers
+    final_df['Consommation (en L/km)'] = final_df.apply(
+        lambda row: row['Total_Volume'] / row['Total_Kilometers'] if row['Total_Kilometers'] > 0 else 0,
+        axis=1
+    )
+
     # Write the result to a new Excel file
     final_df.to_excel(output_excel, index=False)
 
