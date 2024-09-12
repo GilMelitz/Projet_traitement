@@ -1,5 +1,25 @@
 import pandas as pd
 
+# Usage pour exrtaire colonnes
+
+input_excel = 'essai.xlsx'  # Replacez avec notre fichier input excel
+output_excel = 'inter.xlsx'  # Replacez avec notre fichier intermediaire excel
+sheet_name = 'Atal'  # peut etre 'Sheet1'
+columns_to_extract = ['Véhicule', 'Immatriculation', 'Service daffectation', 'Date', 'Jour', 'heure', 'Compteur', 'Volume', 'Montant TTC']  # A remplacer avec les colonnes à extraire
+# Racourci
+
+tt_VL = ['VL', 'VL +', 'VL BLANC', 'VL ELECTRIQUE BLANC', 'VL HYBRIDE', 'VL POOL', 'VL POOL BLANC', 'VL_CdG', 'VL_CdG-HR', 'VL+', 'VL+ HYBRIDE', 'VL+ POOL', 'VLD', 'VLHR', 'VLOG NOVI', 'VLSSSM']
+tt_VID = ['VID', 'VID POOL', 'VID POOL BLANC', 'VID XL', 'VIDCYNO']
+
+# Usage pour extraire lignes
+output_excel_2 = 'output_file.xlsx'
+sheet_name_2 = 'Sheet1'
+column_name = 'Véhicule'  # Remplacez avec le nom de la colonne filtre
+values_to_filter = tt_VL + tt_VID  # Remplacez avec le nom des lignes à préserver
+
+
+
+
 ######################################################################################
 #          EXTRAIRE LES COLONES SOUHAITEES A PARTIR D'UN FICHIER XLSX                #
 ######################################################################################
@@ -15,13 +35,6 @@ def extract_columns_excel(input_excel, output_excel, sheet_name, columns_to_extr
 
 # Creation de l'intermediaire
 
-input_excel = 'test.xlsx'  # Replacez avec notre fichier input excel
-output_excel = 'inter.xlsx'  # Replacez avec notre fichier intermediaire excel
-sheet_name = 'Book1'  # peut etre 'Sheet1'
-columns_to_extract = ['vehicule']  # A remplacer avec les colonnes à extraire
-
-extract_columns_excel(input_excel, output_excel, sheet_name, columns_to_extract)
-
 ######################################################################################
 #          EXTRAIRE LES LIGNES SOUHAITEES A PARTIR D'UN FICHIER XLSX                #
 ######################################################################################
@@ -35,11 +48,12 @@ def extract_rows_by_multiple_values(input_excel, output_excel, sheet_name, colum
 
     filtered_df.to_excel(output_excel, index=False)
 
-# Usage
-input_excel = 'inter.xlsx'
-output_excel = 'output_file.xlsx'
-sheet_name = 'Sheet1'
-column_name = 'vehicule'  # Replacez with the name of the column you want to filter by
-values_to_filter = ['abguytvg', 'abc']  # Replace with the values you're looking for
 
-extract_rows_by_multiple_values(input_excel, output_excel, sheet_name, column_name, values_to_filter)
+
+######################################################################################
+#                      LIGNES POUR FAIRE TOURNER LE PROGRAMME                        #
+######################################################################################
+
+extract_columns_excel(input_excel, output_excel, sheet_name, columns_to_extract)
+
+extract_rows_by_multiple_values(output_excel, output_excel_2, sheet_name_2, column_name, values_to_filter)
