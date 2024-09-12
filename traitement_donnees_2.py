@@ -68,19 +68,31 @@ def group_and_aggregate_immatriculation(input_excel, output_excel, sheet_name, i
     # Create a new column to check if the day is Saturday (5) or Sunday (6)
     df['IsWeekend'] = df[date_column].dt.dayofweek.isin([5, 6])
 
-    # Filter out zero values from 'Compteur' column
-    non_zero_compteur_df = df[df[compteur_column] != 0]
-
-    # Group by the Immatriculation column and aggregate data
+    # Group by the Immatriculation column and perform standard aggregations
     grouped_df = df.groupby(immatriculation_column).agg(
         Total_Montant_TTC=(montant_column, 'sum'),  # Sum Montant TTC
         Weekend_Count=('IsWeekend', 'sum'),  # Count weekends
-        Total_Volume=(volume_column, 'sum'),  # Sum Volume
-        Total_Kilometers=(lambda x: non_zero_compteur_df.groupby(immatriculation_column)[compteur_column].max() - non_zero_compteur_df.groupby(immatriculation_column)[compteur_column].min())  # Calculate total kilometers
+        Total_Volume=(volume_column, 'sum')  # Sum Volume
     ).reset_index()
 
+    # Now handle the Total Kilometers calculation separately
+    # Filter out zero values from 'Compteur' column
+    non_zero_compteur_df = df[df[compteur_column] != 0]
+
+    # Calculate the total kilometers traveled (max - min) for each Immatriculation
+    kilometers_df = non_zero_compteur_df.groupby(immatriculation_column).agg(
+        Max_Compteur=(compteur_column, 'max'),
+        Min_Compteur=(compteur_column, 'min')
+    ).reset_index()
+
+    # Calculate the total kilometers (Max - Min)
+    kilometers_df['Total_Kilometers'] = kilometers_df['Max_Compteur'] - kilometers_df['Min_Compteur']
+
+    # Merge the grouped_df with kilometers_df to include the Total_Kilometers
+    final_df = pd.merge(grouped_df, kilometers_df[[immatriculation_column, 'Total_Kilometers']], on=immatriculation_column, how='left')
+
     # Write the result to a new Excel file
-    grouped_df.to_excel(output_excel, index=False)
+    final_df.to_excel(output_excel, index=False)
 
 # Example usage
 input_excel = 'inter.xlsx'  # Intermediate file or your actual file
