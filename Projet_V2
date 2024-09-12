@@ -1,0 +1,63 @@
+import pandas as pd
+
+def process_excel_data(input_excel, output_excel, sheet_name, columns_to_extract, values_to_filter, immatriculation_column, montant_column, date_column, volume_column, compteur_column, type_column, affectation_column):
+    # Step 1: Read the input Excel file and extract specific columns
+    df = pd.read_excel(input_excel, sheet_name=sheet_name)
+    
+    # Step 2: Extract specified columns
+    df = df[columns_to_extract]
+
+    # Step 3: Filter rows based on the 'Véhicule' column values
+    df = df[df['Véhicule'].isin(values_to_filter)]
+
+    # Step 4: Convert the 'Date' column to datetime format and create a 'Weekend' column
+    df[date_column] = pd.to_datetime(df[date_column], errors='coerce')
+    df['IsWeekend'] = df[date_column].dt.dayofweek.isin([5, 6])  # Identify weekends (Saturday and Sunday)
+
+    # Step 5: Group by the 'Immatriculation' column and perform aggregations
+    grouped_df = df.groupby(immatriculation_column).agg(
+        Type_Vehicule=(type_column, 'first'),  # First Type de véhicule
+        Affectations=(affectation_column, lambda x: list(x.unique())),  # List of unique affectations
+        Total_Volume=(volume_column, 'sum'),  # Sum Volume
+        Total_Montant_TTC=(montant_column, 'sum'),  # Sum Montant TTC
+        Weekend_Count=('IsWeekend', 'sum')  # Count weekends
+    ).reset_index()
+
+    # Step 6: Calculate total kilometers (Max - Min Compteur) for each 'Immatriculation'
+    non_zero_compteur_df = df[df[compteur_column] != 0]
+    kilometers_df = non_zero_compteur_df.groupby(immatriculation_column).agg(
+        Max_Compteur=(compteur_column, 'max'),
+        Min_Compteur=(compteur_column, 'min')
+    ).reset_index()
+
+    # Step 7: Calculate total kilometers traveled
+    kilometers_df['Total_Kilometers'] = kilometers_df['Max_Compteur'] - kilometers_df['Min_Compteur']
+
+    # Step 8: Merge the grouped data with the kilometers data
+    final_df = pd.merge(grouped_df, kilometers_df[[immatriculation_column, 'Total_Kilometers']], on=immatriculation_column, how='left')
+
+    # Step 9: Calculate fuel consumption (Total_Volume / Total_Kilometers) if kilometers is greater than zero
+    final_df['Consommation (en L/100km)'] = final_df.apply(
+        lambda row: (row['Total_Volume'] * 100) / row['Total_Kilometers'] if row['Total_Kilometers'] > 0 else 0,
+        axis=1
+    )
+
+    # Step 10: Write the result to an output Excel file
+    final_df.to_excel(output_excel, index=False)
+
+# Example usage
+input_excel = 'essai.xlsx'  # Input Excel file
+output_excel = 'final_output_file.xlsx'  # Final output file
+sheet_name = 'Atal'  # Sheet name
+columns_to_extract = ['Véhicule', 'Immatriculation', 'Service daffectation', 'Date', 'Jour', 'heure', 'Compteur', 'Volume', 'Montant TTC']  # Columns to extract
+values_to_filter = ['VL', 'VID', 'VL +', 'VL BLANC']  # Filter these vehicle types
+immatriculation_column = 'Immatriculation'
+montant_column = 'Montant TTC'
+date_column = 'Date'
+volume_column = 'Volume'
+compteur_column = 'Compteur'
+type_column = 'Véhicule'
+affectation_column = 'Service daffectation'
+
+# Call the fused function
+process_excel_data(input_excel, output_excel, sheet_name, columns_to_extract, values_to_filter, immatriculation_column, montant_column, date_column, volume_column, compteur_column, type_column, affectation_column)
