@@ -57,3 +57,21 @@ def extract_rows_by_multiple_values(input_excel, output_excel, sheet_name, colum
 extract_columns_excel(input_excel, output_excel, sheet_name, columns_to_extract)
 
 extract_rows_by_multiple_values(output_excel, output_excel_2, sheet_name_2, column_name, values_to_filter)
+
+def group_by_immatriculation(input_excel, output_excel, sheet_name, group_column):
+    # Read the input Excel file
+    df = pd.read_excel(input_excel, sheet_name=sheet_name)
+
+    # Group by the Immatriculation column
+    grouped_df = df.groupby(group_column).agg(list)
+
+    # Write the grouped DataFrame to a new Excel file
+    grouped_df.to_excel(output_excel)
+
+# Example usage
+input_excel = 'inter.xlsx'  # Intermediate file (or your file)
+output_excel = 'grouped_by_immatriculation.xlsx'  # Output file
+sheet_name = 'Sheet1'  # Sheet name
+group_column = 'Immatriculation'  # Column to group by
+
+group_by_immatriculation(input_excel, output_excel, sheet_name, group_column)
