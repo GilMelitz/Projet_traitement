@@ -17,6 +17,10 @@ sheet_name_2 = 'Sheet1'
 column_name = 'Véhicule'  # Remplacez avec le nom de la colonne filtre
 values_to_filter = tt_VL + tt_VID  # Remplacez avec le nom des lignes à préserver
 
+# Grouper par Immatriculation
+output_excel_3 = 'final_output_file.xlsx'
+
+
 
 
 
@@ -58,6 +62,11 @@ extract_columns_excel(input_excel, output_excel, sheet_name, columns_to_extract)
 
 extract_rows_by_multiple_values(output_excel, output_excel_2, sheet_name_2, column_name, values_to_filter)
 
+
+
+
+
+
 def group_and_aggregate_immatriculation(input_excel, output_excel, sheet_name, immatriculation_column, montant_column, date_column, volume_column, compteur_column, type_column, affectation_column):
     # Read the input Excel file
     df = pd.read_excel(input_excel, sheet_name=sheet_name)
@@ -70,11 +79,11 @@ def group_and_aggregate_immatriculation(input_excel, output_excel, sheet_name, i
 
     # Group by the Immatriculation column and perform standard aggregations
     grouped_df = df.groupby(immatriculation_column).agg(
-        Total_Montant_TTC=(montant_column, 'sum'),  # Sum Montant TTC
-        Weekend_Count=('IsWeekend', 'sum'),  # Count weekends
+        Type_Vehicule=(type_column, 'first'),  # First Type de véhicule
+        Affectations=(affectation_column, lambda x: list(x.unique())),  # List of unique affectations
         Total_Volume=(volume_column, 'sum'),  # Sum Volume
-        First_Type_Vehicule=(type_column, 'first'),  # First Type de véhicule
-        Unique_Affectations=(affectation_column, lambda x: list(x.unique()))  # List of unique affectations
+        Total_Montant_TTC=(montant_column, 'sum'),  # Sum Montant TTC
+        Weekend_Count=('IsWeekend', 'sum')  # Count weekends
     ).reset_index()
 
     # Now handle the Total Kilometers calculation separately
@@ -94,8 +103,8 @@ def group_and_aggregate_immatriculation(input_excel, output_excel, sheet_name, i
     final_df = pd.merge(grouped_df, kilometers_df[[immatriculation_column, 'Total_Kilometers']], on=immatriculation_column, how='left')
 
     # Add Consommation (en L/km) column, dividing Total_Volume by Total_Kilometers
-    final_df['Consommation (en L/km)'] = final_df.apply(
-        lambda row: row['Total_Volume'] / row['Total_Kilometers'] if row['Total_Kilometers'] > 0 else 0,
+    final_df['Consommation (en L/100km)'] = final_df.apply(
+        lambda row: row['Total_Volume'] * 100 / row['Total_Kilometers'] if row['Total_Kilometers'] > 0 else 0,
         axis=1
     )
 
@@ -103,15 +112,15 @@ def group_and_aggregate_immatriculation(input_excel, output_excel, sheet_name, i
     final_df.to_excel(output_excel, index=False)
 
 # Example usage
-input_excel = 'inter.xlsx'  # Intermediate file or your actual file
-output_excel = 'grouped_immatriculation_with_all_aggregates.xlsx'  # Output file
+input_excel = 'output_file.xlsx'  # Intermediate file or your actual file
+output_excel = 'final_output_file.xlsx'  # Output file
 sheet_name = 'Sheet1'  # Sheet name
 immatriculation_column = 'Immatriculation'  # Column to group by
 montant_column = 'Montant TTC'  # Column to sum for amounts
 date_column = 'Date'  # Date column to check weekends
 volume_column = 'Volume'  # Column to sum for volume
 compteur_column = 'Compteur'  # Column to calculate total kilometers
-type_column = 'Type de véhicule'  # Column for the first vehicle type
+type_column = 'Véhicule'  # Column for the first vehicle type
 affectation_column = 'Service daffectation'  # Column for unique affectations
 
 group_and_aggregate_immatriculation(input_excel, output_excel, sheet_name, immatriculation_column, montant_column, date_column, volume_column, compteur_column, type_column, affectation_column)
