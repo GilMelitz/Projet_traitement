@@ -58,20 +58,38 @@ extract_columns_excel(input_excel, output_excel, sheet_name, columns_to_extract)
 
 extract_rows_by_multiple_values(output_excel, output_excel_2, sheet_name_2, column_name, values_to_filter)
 
-def group_by_immatriculation(input_excel, output_excel, sheet_name, group_column):
+def group_and_aggregate_immatriculation(input_excel, output_excel, sheet_name, immatriculation_column, montant_column, date_column, volume_column, compteur_column):
     # Read the input Excel file
     df = pd.read_excel(input_excel, sheet_name=sheet_name)
 
-    # Group by the Immatriculation column
-    grouped_df = df.groupby(group_column).agg(list)
+    # Convert 'Date' column to datetime if not already
+    df[date_column] = pd.to_datetime(df[date_column], errors='coerce')
 
-    # Write the grouped DataFrame to a new Excel file
-    grouped_df.to_excel(output_excel)
+    # Create a new column to check if the day is Saturday (5) or Sunday (6)
+    df['IsWeekend'] = df[date_column].dt.dayofweek.isin([5, 6])
+
+    # Filter out zero values from 'Compteur' column
+    non_zero_compteur_df = df[df[compteur_column] != 0]
+
+    # Group by the Immatriculation column and aggregate data
+    grouped_df = df.groupby(immatriculation_column).agg(
+        Total_Montant_TTC=(montant_column, 'sum'),  # Sum Montant TTC
+        Weekend_Count=('IsWeekend', 'sum'),  # Count weekends
+        Total_Volume=(volume_column, 'sum'),  # Sum Volume
+        Total_Kilometers=(lambda x: non_zero_compteur_df.groupby(immatriculation_column)[compteur_column].max() - non_zero_compteur_df.groupby(immatriculation_column)[compteur_column].min())  # Calculate total kilometers
+    ).reset_index()
+
+    # Write the result to a new Excel file
+    grouped_df.to_excel(output_excel, index=False)
 
 # Example usage
-input_excel = 'inter.xlsx'  # Intermediate file (or your file)
-output_excel = 'grouped_by_immatriculation.xlsx'  # Output file
+input_excel = 'inter.xlsx'  # Intermediate file or your actual file
+output_excel = 'grouped_immatriculation_with_all_aggregates.xlsx'  # Output file
 sheet_name = 'Sheet1'  # Sheet name
-group_column = 'Immatriculation'  # Column to group by
+immatriculation_column = 'Immatriculation'  # Column to group by
+montant_column = 'Montant TTC'  # Column to sum for amounts
+date_column = 'Date'  # Date column to check weekends
+volume_column = 'Volume'  # Column to sum for volume
+compteur_column = 'Compteur'  # Column to calculate total kilometers
 
-group_by_immatriculation(input_excel, output_excel, sheet_name, group_column)
+group_and_aggregate_immatriculation(input_excel, output_excel, sheet_name, immatriculation_column, montant_column, date_column, volume_column, compteur_column)
